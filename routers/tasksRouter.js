@@ -1,6 +1,7 @@
 const { Router } = require("express");
 const router = Router();
+const taskController = require("../controllers/taskController");
 
-module.exports = {
-  post: ("/tasks", (req, res) => {}),
-};
+router.use("/", taskController);
+
+module.exports = router;

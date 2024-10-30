@@ -1,6 +1,7 @@
+require("dotenv").config();
 const { Pool } = require("pg");
 const pool = new Pool({
-  connectionString: `postgresql://apple:password@localhost:5432/apple`,
+  connectionString: process.env.DB_URL,
   ssl: false,
 });
 
