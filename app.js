@@ -9,9 +9,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use("/", taskRouter);
 
 app.listen(PORT, () =>
-  console.log(
-    `Your task management App is currently listening on port ${PORT}!`
-  )
+  console.log(`Your task management App is currently running on port ${PORT}!`)
 );
 
 // console.log(Date());

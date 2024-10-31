@@ -24,14 +24,15 @@ tasks.post("/tasks", async (req, res) => {
   const { title, description, due_date, status } = req.body;
   console.log("task post request body:", req.body);
   const created_at = Date();
-  const task = await createTask(
+  const err = await createTask(
     title,
     description,
     due_date,
     status,
     created_at
   );
-  if (task) {
+  console.log("error from line 34:", err);
+  if (err) {
     res.send(JSON.stringify({ message: "Task could not be created" }));
   } else {
     res.send(JSON.stringify({ message: "Task created!" }));
@@ -51,22 +52,22 @@ tasks.get("/tasks/:id", async (req, res) => {
 
 tasks.put("/tasks/:id", async (req, res) => {
   const { id } = req.params;
-  const { title, description, due_date, status, created_at } = req.body;
+  const { title, description, due_date, status } = req.body;
   const updated_at = Date();
   const task = await getTaskById(id);
+  // console.log(task);
   await updateTaskById(
-    title || task.title,
-    description || task.description,
-    due_date || task.due_date,
-    status || task.status,
-    task.created_at,
+    !title ? task.title : title,
+    !description ? task.description : description,
+    !due_date ? task.due_date : due_date,
+    !status ? task.status : status,
     updated_at,
     id
   );
   res.send(JSON.stringify({ message: "Task updated!" }));
 });
 
-tasks.delete("/tasks:id", async (req, res) => {
+tasks.delete("/tasks/:id", async (req, res) => {
   const { id } = req.params;
   await deleteTAskById(id);
   res.send(JSON.stringify({ message: "Task deleted!" }));

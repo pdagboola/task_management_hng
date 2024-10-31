@@ -6,6 +6,7 @@ class Populate {
       console.log("...creating table");
       await pool.query(`DROP TABLE IF EXISTS users`);
       await pool.query(`DROP TABLE IF EXISTS tasks`);
+      await pool.query(`CREATE EXTENSION IF NOT EXISTS "uuid-ossp"`);
       await pool.query(
         `CREATE TABLE users(id uuid DEFAULT uuid_generate_v4() PRIMARY KEY, username VARCHAR(255), email VARCHAR(255), password BYTEA);`
       );
@@ -52,22 +53,14 @@ class Populate {
     ]);
     return rows;
   }
-  async updateTaskById(
-    title,
-    description,
-    due_date,
-    status,
-    created_at,
-    updated_at,
-    id
-  ) {
+  async updateTaskById(title, description, due_date, status, updated_at, id) {
     await pool.query(
-      `INSERT INTO tasks(title, desxription, due_date, status, created_at, updated_at) VALUES($1, $2, $3, $4, $5, $6) WHERE id = $7;`,
-      [title, description, due_date, status, created_at, updated_at, id]
+      `UPDATE tasks SET title = $1, description = $2, due_date = $3, status = $4, updated_at = $5 WHERE id = $6;`,
+      [title, description, due_date, status, updated_at, id]
     );
   }
   async deleteTAskById(id) {
-    await pool.query(`DELETE FROM users WHERE id = $1`, [id]);
+    await pool.query(`DELETE FROM tasks WHERE id = $1`, [id]);
   }
 }
 
