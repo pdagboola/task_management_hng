@@ -7,18 +7,20 @@ class Populate {
     await pool.query(`DROP TABLE IF EXISTS tasks`);
     await pool.query(`CREATE EXTENSION IF NOT EXISTS "uuid-ossp"`);
     await pool.query(
-      `CREATE TABLE users(id uuid DEFAULT uuid_generate_v4() PRIMARY KEY, username VARCHAR(255), email VARCHAR(255), password BYTEA);`
+      `CREATE TABLE users(id uuid DEFAULT uuid_generate_v4() PRIMARY KEY, username VARCHAR(255), password VARCHAR(255), email VARCHAR(255), salt BYTEA);`
     );
     await pool.query(
       `CREATE TABLE tasks( id SERIAL PRIMARY KEY, title VARCHAR(255), description VARCHAR(255), due_date DATE, status VARCHAR(255), created_at VARCHAR, updated_at VARCHAR);`
     );
     console.log("table created");
   }
-  async createUser(username, email, password) {
-    await pool.query(
-      `INSERT INTO users(username, email, password) VALUES ($1, $2, $3);`,
-      [username, email, password]
+  async createUser(username, password, email, salt) {
+    const { rows } = await pool.query(
+      `INSERT INTO users(username, password, email, salt) VALUES ($1, $2, $3, $4) RETURNING username, password;`,
+      [username, password, email, salt]
     );
+
+    return rows;
   }
   async createTask(title, description, due_date, status, created_at) {
     await pool.query(
@@ -47,6 +49,19 @@ class Populate {
   }
   async deleteTaskById(id) {
     await pool.query(`DELETE FROM tasks WHERE id = $1`, [id]);
+  }
+  async findUserById(id) {
+    const { rows } = await pool.query(`SELECT * FROM users WHERE id = $1`, [
+      id,
+    ]);
+    return rows;
+  }
+  async findUserByUsername(username) {
+    const { rows } = await pool.query(
+      `SELECT * FROM users WHERE username LIKE $1`,
+      [username]
+    );
+    return rows;
   }
 }
 

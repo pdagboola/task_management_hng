@@ -5,7 +5,7 @@ const {
   getTasks,
   getTaskById,
   updateTaskById,
-  deleteTAskById,
+  deleteTaskById,
 } = require("../models/populatedb");
 
 tasks.get("/tasks/page/:pagenum", async (req, res) => {
@@ -80,10 +80,20 @@ tasks.put("/tasks/:id", async (req, res) => {
 tasks.delete("/tasks/:id", async (req, res) => {
   const { id } = req.params;
   try {
-    await deleteTAskById(id);
-    res.json({ success: true, message: "Task deleted!" });
+    const task = await getTaskById(id);
+    if (task.length === 0) {
+      return res.json({ success: false, message: "User not found" });
+    }
   } catch (err) {
-    res.json({ success: false, message: err.message });
+    if (err) {
+      return res.json({ success: false, message: err.message });
+    }
+  }
+  try {
+    await deleteTaskById(id);
+    return res.json({ success: true, message: "Task deleted!" });
+  } catch (err) {
+    return res.json({ success: false, message: err.message });
   }
 });
 
