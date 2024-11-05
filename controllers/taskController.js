@@ -109,7 +109,7 @@ tasks.put(
 
     try {
       const task = await getTaskById(id);
-      if (task.created_by !== username) {
+      if (task[0].created_by !== username) {
         return res.status(401).json({
           success: false,
           message: "You are unauthorized to update this task",
@@ -146,7 +146,7 @@ tasks.delete(
 
     try {
       const task = await getTaskById(id);
-      if (task.created_by !== username) {
+      if (task[0].created_by !== username) {
         return res.status(401).json({
           success: false,
           message: "You are unauthorized to delete this task",

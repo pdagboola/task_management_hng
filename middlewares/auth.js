@@ -16,7 +16,7 @@ const opts = {};
 // const { createUser } = require("../models/populatedb");
 // console.log("line 10 auth.js", crypto);
 
-opts.secretOrKey = "secret"; //seret
+opts.secretOrKey = process.env.SECRET_KEY; //seret
 opts.jwtFromRequest = ExtractJwt.fromAuthHeaderAsBearerToken(); //extractor
 // opts.issuer = "google.com";
 
@@ -122,7 +122,7 @@ users.post(
     // Create a JWT with user ID and username in the payload
     const token = jwt.sign(
       { sub: user.id, username: user.username },
-      "secret",
+      process.env.SECRET_KEY,
       { expiresIn: "1h" }
     );
     res.status(200).json({
