@@ -3,6 +3,7 @@ const users = Router();
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const crypto = require("node:crypto");
+require("dotenv").config();
 const {
   findUserById,
   findUserByUsername,
@@ -24,16 +25,16 @@ passport.use(
     opts,
     (verify = async (jwt_payload, done) => {
       console.log("jwt_payload:", jwt_payload);
-      await findUserById({ id: jwt_payload.sub }, (err, user) => {
-        if (err) {
-          return done(err, false);
-        }
+      try {
+        const user = await findUserById(jwt_payload.sub);
         if (user) {
           return done(null, user);
         } else {
           return done(null, false);
         }
-      });
+      } catch (err) {
+        return done(err, false);
+      }
     })
   )
 );
@@ -44,20 +45,19 @@ users.post("/users/register", async (req, res) => {
     const saltRounds = 10;
     const hashedPassword = await bcrypt.hash(password, saltRounds);
     console.log("heres the first hashed password", hashedPassword);
-    const newUser = await createUser(
-      username,
-      hashedPassword,
-      email,
-      saltRounds
-    );
+    await createUser(username, hashedPassword, email, saltRounds);
 
-    // Generate JWT token upon successful registration
-    const token = jwt.sign(
-      { sub: newUser.id, username: newUser.username },
-      "secret",
-      { expiresIn: "1h" }
-    );
-    res.json({ success: true, message: "User created", token });
+    // const token = jwt.sign(
+    //   { sub: newUser.id, username: newUser.username },
+    //   "secret",
+    //   { expiresIn: "1h" }
+    // );
+
+    res.json({
+      success: true,
+      message: "User created",
+      // token: "Bearer " + token,
+    });
   } catch (err) {
     res
       .status(500)
@@ -125,11 +125,11 @@ users.post(
       "secret",
       { expiresIn: "1h" }
     );
-    res.json({
+    res.status(200).json({
       success: true,
       message: "Login successful",
       user: req.username,
-      token,
+      token: "Bearer " + token,
     });
   }
   //   const { username, password, email } = req.body;
@@ -152,11 +152,12 @@ users.get(
   "/protected",
   passport.authenticate("jwt", { session: false }),
   (req, res) => {
-    res.json({
+    res.status(200).json({
       message: "You have accessed a protected route!",
-      user: req.user,
+      user: { username: req.user[0].username, id: req.user[0].id },
+      // user: { username: req.user.username, id: req.user.id },
     });
   }
 );
 
-module.exports = users;
+module.exports = { users, passport };

@@ -10,7 +10,7 @@ class Populate {
       `CREATE TABLE users(id uuid DEFAULT uuid_generate_v4() PRIMARY KEY, username VARCHAR(255), password VARCHAR(255), email VARCHAR(255), salt BYTEA);`
     );
     await pool.query(
-      `CREATE TABLE tasks( id SERIAL PRIMARY KEY, title VARCHAR(255), description VARCHAR(255), due_date DATE, status VARCHAR(255), created_at VARCHAR, updated_at VARCHAR);`
+      `CREATE TABLE tasks( id SERIAL PRIMARY KEY, title VARCHAR(255), description VARCHAR(255), due_date DATE, status VARCHAR(255), created_at VARCHAR, updated_at VARCHAR, created_by VARCHAR(255), user_id UUID);`
     );
     console.log("table created");
   }
@@ -22,10 +22,18 @@ class Populate {
 
     return rows;
   }
-  async createTask(title, description, due_date, status, created_at) {
+  async createTask(
+    title,
+    description,
+    due_date,
+    status,
+    created_at,
+    created_by,
+    user_id
+  ) {
     await pool.query(
-      `INSERT INTO tasks(title, description, due_date, status, created_at) VALUES ($1, $2, $3, $4, $5);`,
-      [title, description, due_date, status, created_at]
+      `INSERT INTO tasks(title, description, due_date, status, created_at, created_by, user_id) VALUES ($1, $2, $3, $4, $5, $6, $7);`,
+      [title, description, due_date, status, created_at, created_by, user_id]
     );
   }
   async getTasks(offset) {
@@ -43,7 +51,13 @@ class Populate {
   }
   async updateTaskById(title, description, due_date, status, updated_at, id) {
     await pool.query(
-      `UPDATE tasks SET title = $1, description = $2, due_date = $3, status = $4, updated_at = $5 WHERE id = $6;`,
+      `UPDATE tasks SET
+    title = COALESCE($1, title),
+    description = COALESCE($2, description),
+    due_date = COALESCE($3, due_date),
+    status = COALESCE($4, status),
+    updated_at = $5
+  WHERE id = $6;`,
       [title, description, due_date, status, updated_at, id]
     );
   }
