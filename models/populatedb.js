@@ -60,17 +60,21 @@ class Populate {
     // console.log("getting tasks");
     const cachedTasks = await redis.get("tasks");
     // console.log("gotten cached tasks", cachedTasks);
+
     if (cachedTasks) {
       try {
         // console.log("if block");
         const parsedTasks = JSON.parse(cachedTasks);
         if (parsedTasks.length > 0) {
+          console.log("parsedTasks line 69");
           return parsedTasks;
         }
+        console.log("parsedTasks line 72");
       } catch (err) {
         console.log(err.message);
       }
     } else {
+      console.log("parsedTasks line 77");
       const { rows } = await pool.query(
         `SELECT * FROM tasks ORDER BY id LIMIT 5 OFFSET $1;`,
         [offset]
@@ -83,7 +87,10 @@ class Populate {
   }
   async getTaskById(id) {
     const cachedTask = await redis.get("task");
-    if (cachedTask) {
+    if (!cachedTask || cachedTask[0].id !== id) {
+      await redis.del("task");
+    }
+    if (cachedTask && cachedTask[0].id === id) {
       return JSON.parse(cachedTask);
     }
     const { rows } = await pool.query(`SELECT * FROM tasks WHERE id = $1;`, [
@@ -115,7 +122,10 @@ class Populate {
   }
   async findUserByEmail(email) {
     const cachedUser = await redis.get("users");
-    if (cachedUser) {
+    if (!cachedUser || cachedUser[0].email !== email) {
+      await redis.del("users");
+    }
+    if (cachedUser && cachedUser[0].email === email) {
       return JSON.parse(cachedUser);
     }
     const { rows } = await pool.query(
