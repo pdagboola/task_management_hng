@@ -3,10 +3,12 @@ const users = Router();
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const crypto = require("node:crypto");
+const { isEmail } = require("validator");
 require("dotenv").config();
 const {
   findUserById,
   findUserByUsername,
+  findUserByEmail,
   createUser,
 } = require("../models/populatedb");
 const passport = require("passport");
@@ -40,8 +42,31 @@ passport.use(
 );
 
 users.post("/users/register", async (req, res) => {
-  const { username, password, email } = req.body;
   try {
+    const { username, password, email } = req.body;
+    if (!username || !password || !email) {
+      return res
+        .status(400)
+        .json({ success: false, err: "Enter registration details correctly!" });
+    }
+    if (!isEmail(email)) {
+      return res
+        .status(400)
+        .json({ success: false, err: "Invalid email address" });
+    }
+    const userExists = await findUserByUsername(username);
+    const userEmailExists = await findUserByEmail(email);
+    console.log("user exists or email exists", userExists, userEmailExists);
+
+    if (
+      userExists[0].username === username ||
+      userEmailExists[0].email === email
+    ) {
+      return res
+        .status(409)
+        .json({ success: false, err: "User already exists" });
+    }
+
     const saltRounds = 10;
     const hashedPassword = await bcrypt.hash(password, saltRounds);
     console.log("heres the first hashed password", hashedPassword);
@@ -53,15 +78,15 @@ users.post("/users/register", async (req, res) => {
     //   { expiresIn: "1h" }
     // );
 
-    res.json({
+    return res.status(200).json({
       success: true,
-      message: "User created",
+      data: "User created",
       // token: "Bearer " + token,
     });
   } catch (err) {
-    res
+    return res
       .status(500)
-      .json({ success: false, message: "Couldn't create user", err: err.msg });
+      .json({ success: false, data: "Couldn't create user", err: err.message });
   }
 });
 
@@ -80,13 +105,13 @@ users.post("/users/register", async (req, res) => {
 //       if (err) {
 //         return res
 //           .status(500)
-//           .json({ success: false, message: "Error hashing password" });
+//           .json({ success: false, data: "Error hashing password" });
 //       }
 //       await console.log(hashedPassword),
 //         await createUser(username, hashedPassword, email, salt),
 //         async (username, err) => {
 //           if (err) {
-//             res.json(500, { succes: false, message: "Couldn't create user" });
+//             res.json(500, { succes: false, data: "Couldn't create user" });
 //           }
 //           const { id } = await findUserByUsername(username);
 //           const user = { id, username };
@@ -95,7 +120,7 @@ users.post("/users/register", async (req, res) => {
 //             "secret",
 //             { expiresIn: "1h" }
 //           );
-//           res.json({ success: true, message: "User created", token });
+//           res.json({ success: true, data: "User created", token });
 //         };
 
 //       // console.log(first);
@@ -106,31 +131,48 @@ users.post("/users/register", async (req, res) => {
 users.post(
   "/users/login",
   async (req, res) => {
-    const { username, password } = req.body;
-    const userArray = await findUserByUsername(username);
-    const user = userArray[0];
-    if (!user) return res.status(401).json({ message: "User not found" });
-    // const saltRounds = 10;
-    // const newHashedPassword = await bcrypt.hash(password, saltRounds);
-    // console.log("heres the new hashed password", newHashedPassword);
+    try {
+      const { username, password } = req.body;
+      if (!username || !password) {
+        return res
+          .status(400)
+          .json({ success: false, err: "Enter details correctly!" });
+      }
+      const userArray = await findUserByUsername(username);
+      const user = userArray[0];
 
-    // console.log("Line 113 auth js", newHashedPassword, user.password);
-    const isPasswordValid = await bcrypt.compare(password, user.password);
-    if (!isPasswordValid)
-      return res.status(401).json({ message: "Invalid password" });
+      if (!user) return res.status(401).json({ data: "User not found" });
 
-    // Create a JWT with user ID and username in the payload
-    const token = jwt.sign(
-      { sub: user.id, username: user.username },
-      process.env.SECRET_KEY,
-      { expiresIn: "1h" }
-    );
-    res.status(200).json({
-      success: true,
-      message: "Login successful",
-      user: req.username,
-      token: "Bearer " + token,
-    });
+      // const saltRounds = 10;
+      // const newHashedPassword = await bcrypt.hash(password, saltRounds);
+      // console.log("heres the new hashed password", newHashedPassword);
+
+      // console.log("Line 113 auth js", newHashedPassword, user.password);
+      const isPasswordValid = await bcrypt.compare(password, user.password);
+      if (!isPasswordValid)
+        return res.status(401).json({ data: "Invalid password" });
+
+      // Create a JWT with user ID and username in the payload
+      const token = jwt.sign(
+        { sub: user.id, username: user.username },
+        process.env.SECRET_KEY,
+        { expiresIn: "1h" }
+      );
+      res.status(200).json({
+        success: true,
+        data: "Login successful",
+        user: req.username,
+        token: "Bearer " + token,
+      });
+    } catch (err) {
+      res
+        .status(500)
+        .json({
+          success: false,
+          data: "Couldn't login user",
+          err: err.message,
+        });
+    }
   }
   //   const { username, password, email } = req.body;
   //   const salt = crypto.randomBytes(16);
@@ -152,11 +194,15 @@ users.get(
   "/protected",
   passport.authenticate("jwt", { session: false }),
   (req, res) => {
-    res.status(200).json({
-      message: "You have accessed a protected route!",
-      user: { username: req.user[0].username, id: req.user[0].id },
-      // user: { username: req.user.username, id: req.user.id },
-    });
+    try {
+      res.status(200).json({
+        data: "You have accessed a protected route!",
+        user: { username: req.user[0].username, id: req.user[0].id },
+        // user: { username: req.user.username, id: req.user.id },
+      });
+    } catch (err) {
+      res.status(500).json({ success: false, err: err.message });
+    }
   }
 );
 
