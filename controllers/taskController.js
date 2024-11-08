@@ -27,16 +27,36 @@ tasks.get(
       const { page } = req.query;
       // let offset = 0;
       const offset = (Number(page) - 1) * 5;
-      const allTasks = await getTasks(offset);
-      const userTasks = allTasks.filter((task) => task.created_by === username);
+      const allTasks = await getTasks(username, offset);
+      const userTasks = allTasks.rows;
+      const count = allTasks.count.rows[0].count;
+      // console.log("allTasks:", allTasks);
+      // const userTasks = allTasks.filter((task) => task.created_by === username);
+      console.log("usertasks", userTasks);
       // console.log(userTasks);
+      const pages_to_exist = Math.ceil(count / 5);
+      if (page > pages_to_exist) {
+        return res
+          .status(404)
+          .json({ success: false, data: "Uh oh, page doesn't exist" });
+      }
       if (!userTasks || userTasks.length === 0) {
         return res.json({
           sucess: true,
           data: "You haven't created tasks yet",
         });
       } else {
-        return res.json({ data: userTasks });
+        return res.json({
+          success: true,
+          data: {
+            tasks: userTasks,
+            metadata: {
+              current_page: Number(page),
+              total_no_of_tasks: count,
+              page_to_exist: pages_to_exist,
+            },
+          },
+        });
       }
     } catch (err) {
       return res.status(500).json({ success: false, err: err.message });
@@ -92,19 +112,20 @@ tasks.get(
       const { username } = returnPayload(req, res);
       const { id } = req.params;
       const task = await getTaskById(id);
-      console.log(task[0].created_by, username);
-      if (task[0].created_by !== username) {
+      if (!task || task.length === 0) {
+        console.log(task);
+        return res.status(404).json({ success: false, data: "Task not found" });
+      }
+      if (task.length > 0 && task[0].created_by !== username) {
+        console.log(task[0].created_by, username);
         return res.status(401).json({
           success: false,
           data: "You are unauthorized to view this task",
         });
       }
       console.log("here's the task object", task);
-      if (!task || task.length === 0) {
-        return res.status(404).json({ success: false, data: "Task not found" });
-      } else {
-        return res.status(200).json({ success: true, data: task });
-      }
+
+      return res.status(200).json({ success: true, data: task });
     } catch (err) {
       return res.status(500).json({ success: false, data: err.message });
     }

@@ -57,7 +57,23 @@ users.post("/users/register", async (req, res) => {
     const userExists = await findUserByUsername(username);
     const userEmailExists = await findUserByEmail(email);
     console.log("user exists or email exists", userExists, userEmailExists);
+    if (
+      !userExists ||
+      userExists.length === 0 ||
+      !userEmailExists ||
+      userEmailExists.length === 0
+    ) {
+      const saltRounds = 10;
+      const hashedPassword = await bcrypt.hash(password, saltRounds);
+      console.log("heres the first hashed password", hashedPassword);
+      await createUser(username, hashedPassword, email, saltRounds);
 
+      return res.status(200).json({
+        success: true,
+        data: "User created",
+        // token: "Bearer " + token,
+      });
+    }
     if (
       userExists[0].username === username ||
       userEmailExists[0].email === email
@@ -66,23 +82,6 @@ users.post("/users/register", async (req, res) => {
         .status(409)
         .json({ success: false, err: "User already exists" });
     }
-
-    const saltRounds = 10;
-    const hashedPassword = await bcrypt.hash(password, saltRounds);
-    console.log("heres the first hashed password", hashedPassword);
-    await createUser(username, hashedPassword, email, saltRounds);
-
-    // const token = jwt.sign(
-    //   { sub: newUser.id, username: newUser.username },
-    //   "secret",
-    //   { expiresIn: "1h" }
-    // );
-
-    return res.status(200).json({
-      success: true,
-      data: "User created",
-      // token: "Bearer " + token,
-    });
   } catch (err) {
     return res
       .status(500)
@@ -165,13 +164,11 @@ users.post(
         token: "Bearer " + token,
       });
     } catch (err) {
-      res
-        .status(500)
-        .json({
-          success: false,
-          data: "Couldn't login user",
-          err: err.message,
-        });
+      res.status(500).json({
+        success: false,
+        data: "Couldn't login user",
+        err: err.message,
+      });
     }
   }
   //   const { username, password, email } = req.body;
@@ -190,20 +187,20 @@ users.post(
   //     }
   //   );
 );
-users.get(
-  "/protected",
-  passport.authenticate("jwt", { session: false }),
-  (req, res) => {
-    try {
-      res.status(200).json({
-        data: "You have accessed a protected route!",
-        user: { username: req.user[0].username, id: req.user[0].id },
-        // user: { username: req.user.username, id: req.user.id },
-      });
-    } catch (err) {
-      res.status(500).json({ success: false, err: err.message });
-    }
-  }
-);
+// users.get(
+//   "/protected",
+//   passport.authenticate("jwt", { session: false }),
+//   (req, res) => {
+//     try {
+//       res.status(200).json({
+//         data: "You have accessed a protected route!",
+//         user: { username: req.user[0].username, id: req.user[0].id },
+//         // user: { username: req.user.username, id: req.user.id },
+//       });
+//     } catch (err) {
+//       res.status(500).json({ success: false, err: err.message });
+//     }
+//   }
+// );
 
 module.exports = { users, passport };

@@ -28,8 +28,10 @@ class Populate {
       `INSERT INTO users(username, password, email, salt) VALUES ($1, $2, $3, $4) RETURNING username, password;`,
       [username, password, email, salt]
     );
-    const deleteStatus = await redis.del("users");
-    console.log("Cache delete status:", deleteStatus); // Should log a number, 1 if deleted
+    await redis.del("users");
+    await redis.del("usersUsername");
+    await redis.del("usersEmail");
+
     return rows;
   }
   async getUsers() {
@@ -55,35 +57,21 @@ class Populate {
       `INSERT INTO tasks(title, description, due_date, status, created_at, created_by, user_id) VALUES ($1, $2, $3, $4, $5, $6, $7);`,
       [title, description, due_date, status, created_at, created_by, user_id]
     );
+    await redis.del("tasks");
   }
-  async getTasks(offset) {
-    // console.log("getting tasks");
-    const cachedTasks = await redis.get("tasks");
-    // console.log("gotten cached tasks", cachedTasks);
-
-    if (cachedTasks) {
-      try {
-        // console.log("if block");
-        const parsedTasks = JSON.parse(cachedTasks);
-        if (parsedTasks.length > 0) {
-          console.log("parsedTasks line 69");
-          return parsedTasks;
-        }
-        console.log("parsedTasks line 72");
-      } catch (err) {
-        console.log(err.message);
-      }
-    } else {
-      console.log("parsedTasks line 77");
-      const { rows } = await pool.query(
-        `SELECT * FROM tasks ORDER BY id LIMIT 5 OFFSET $1;`,
-        [offset]
-      );
-      // console.log(rows);
-      console.log("gotten tasks");
-      await redis.set("tasks", JSON.stringify(rows));
-      return rows;
-    }
+  async getTasks(username, offset) {
+    const { rows } = await pool.query(
+      `SELECT * FROM tasks WHERE created_by LIKE $1 ORDER BY id LIMIT 5 OFFSET $2;`,
+      [username, offset]
+    );
+    const count = await pool.query(
+      `SELECT COUNT(*) FROM tasks where created_by LIKE $1`,
+      [username]
+    );
+    const rowsCount = { rows, count };
+    // console.log(rows);
+    console.log("gotten tasks");
+    return rowsCount;
   }
   async getTaskById(id) {
     const cachedTask = await redis.get("task");
@@ -110,9 +98,11 @@ class Populate {
   WHERE id = $6;`,
       [title, description, due_date, status, updated_at, id]
     );
+    await redis.del("tasks");
   }
   async deleteTaskById(id) {
     await pool.query(`DELETE FROM tasks WHERE id = $1`, [id]);
+    await redis.del("tasks");
   }
   async findUserById(id) {
     const { rows } = await pool.query(`SELECT * FROM users WHERE id = $1`, [
@@ -121,9 +111,9 @@ class Populate {
     return rows;
   }
   async findUserByEmail(email) {
-    const cachedUser = await redis.get("users");
+    const cachedUser = await redis.get("usersEmail");
     if (!cachedUser || cachedUser[0].email !== email) {
-      await redis.del("users");
+      await redis.del("usersEmail");
     }
     if (cachedUser && cachedUser[0].email === email) {
       return JSON.parse(cachedUser);
@@ -132,13 +122,13 @@ class Populate {
       `SELECT * FROM users WHERE email LIKE $1`,
       [email]
     );
-    await redis.set("users", JSON.stringify(rows));
+    await redis.set("usersEmail", JSON.stringify(rows));
     return rows;
   }
   async findUserByUsername(username) {
-    const cachedUser = await redis.get("users");
+    const cachedUser = await redis.get("userUsername");
     if (!cachedUser || cachedUser[0].username !== username) {
-      await redis.del("users");
+      await redis.del("userUsername");
     }
     if (cachedUser && cachedUser[0].username === username) {
       return JSON.parse(cachedUser);
@@ -147,7 +137,7 @@ class Populate {
       `SELECT * FROM users WHERE username LIKE $1`,
       [username]
     );
-    await redis.set("users", JSON.stringify(rows));
+    await redis.set("userUsername", JSON.stringify(rows));
     return rows;
   }
 }
