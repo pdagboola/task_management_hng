@@ -11,12 +11,13 @@ class Populate {
     console.log("...creating tables");
     await pool.query(`DROP TABLE IF EXISTS users`);
     await pool.query(`DROP TABLE IF EXISTS tasks`);
+    await pool.query(`DROP TABLE IF EXISTS users_tasks`);
     await pool.query(`CREATE EXTENSION IF NOT EXISTS "uuid-ossp"`);
     await pool.query(
       `CREATE TABLE users(id uuid DEFAULT uuid_generate_v4() PRIMARY KEY, username VARCHAR(255), password VARCHAR(255), email VARCHAR(255), salt BYTEA);`
     );
     await pool.query(
-      `CREATE TABLE tasks( id SERIAL PRIMARY KEY, title VARCHAR(255), description VARCHAR(255), due_date DATE, status VARCHAR(255), created_at VARCHAR, updated_at VARCHAR, created_by VARCHAR(255), user_id UUID);`
+      `CREATE TABLE tasks( id SERIAL PRIMARY KEY, title VARCHAR(255), description VARCHAR(255), due_date DATE, status VARCHAR(255), priority VARCHAR(255), created_at VARCHAR, updated_at VARCHAR, created_by VARCHAR(255), user_id UUID, tags JSON);`
     );
     await pool.query(
       `CREATE TABLE users_tasks( id SERIAL PRIMARY KEY, user_id UUID);`
@@ -28,10 +29,7 @@ class Populate {
       `INSERT INTO users(username, password, email, salt) VALUES ($1, $2, $3, $4) RETURNING username, password;`,
       [username, password, email, salt]
     );
-    await redis.del("users");
-    await redis.del("usersUsername");
-    await redis.del("usersEmail");
-
+    await redis.del("users", "usersUsername", "usersEmail");
     return rows;
   }
   async getUsers() {
@@ -49,13 +47,25 @@ class Populate {
     description,
     due_date,
     status,
+    priority,
     created_at,
     created_by,
-    user_id
+    user_id,
+    tags
   ) {
     await pool.query(
-      `INSERT INTO tasks(title, description, due_date, status, created_at, created_by, user_id) VALUES ($1, $2, $3, $4, $5, $6, $7);`,
-      [title, description, due_date, status, created_at, created_by, user_id]
+      `INSERT INTO tasks(title, description, due_date, status, priority, created_at, created_by, user_id, tags) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9);`,
+      [
+        title,
+        description,
+        due_date,
+        status,
+        priority,
+        created_at,
+        created_by,
+        user_id,
+        tags,
+      ]
     );
     await redis.del("tasks");
   }
@@ -87,16 +97,26 @@ class Populate {
     await redis.set("task", JSON.stringify(rows));
     return rows;
   }
-  async updateTaskById(title, description, due_date, status, updated_at, id) {
+  async updateTaskById(
+    title,
+    description,
+    due_date,
+    status,
+    priority,
+    updated_at,
+    id
+  ) {
     await pool.query(
       `UPDATE tasks SET
     title = COALESCE($1, title),
     description = COALESCE($2, description),
     due_date = COALESCE($3, due_date),
     status = COALESCE($4, status),
-    updated_at = $5
-  WHERE id = $6;`,
-      [title, description, due_date, status, updated_at, id]
+    priority = COALESCE($5, priority),
+    updated_at = $6,
+    tags = COALESCE($7, tags)
+  WHERE id = $8;`,
+      [title, description, due_date, status, priority, updated_at, tags, id]
     );
     await redis.del("tasks");
   }

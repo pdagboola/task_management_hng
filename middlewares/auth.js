@@ -140,7 +140,8 @@ users.post(
       const userArray = await findUserByUsername(username);
       const user = userArray[0];
 
-      if (!user) return res.status(401).json({ data: "User not found" });
+      if (!user)
+        return res.status(401).json({ success: false, data: "User not found" });
 
       // const saltRounds = 10;
       // const newHashedPassword = await bcrypt.hash(password, saltRounds);
@@ -149,7 +150,9 @@ users.post(
       // console.log("Line 113 auth js", newHashedPassword, user.password);
       const isPasswordValid = await bcrypt.compare(password, user.password);
       if (!isPasswordValid)
-        return res.status(401).json({ data: "Invalid password" });
+        return res
+          .status(401)
+          .json({ success: true, data: "Invalid password" });
 
       // Create a JWT with user ID and username in the payload
       const token = jwt.sign(
