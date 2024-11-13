@@ -1,10 +1,9 @@
 const { Router } = require("express");
 const router = Router();
 const taskController = require("../controllers/taskController");
-const auth = require("../middlewares/auth");
-const authController = auth.users;
+const userController = require("../controllers/userController");
 
 router.use("/", taskController);
-router.use("/", authController);
+router.use("/", userController);
 
 module.exports = router;
