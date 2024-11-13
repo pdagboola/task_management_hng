@@ -7,6 +7,8 @@ const {
   getTaskById,
   updateTaskById,
   deleteTaskById,
+  findUserByEmail,
+  shareTask,
 } = require("../models/populatedb");
 const jwt = require("jsonwebtoken");
 
@@ -23,12 +25,12 @@ tasks.get(
   passport.authenticate("jwt", { session: false }),
   async (req, res) => {
     try {
-      const { username } = returnPayload(req, res);
+      const { username, sub } = returnPayload(req, res);
       const { page, status, priority, tags } = req.query;
 
       //Filtering with status
       const offset = (Number(page) - 1) * 5;
-      const allTasks = await getTasks(username, offset);
+      const allTasks = await getTasks(sub, offset);
 
       console.log("allTasks", allTasks.rows);
       const userTasks = allTasks.rows;
@@ -55,11 +57,11 @@ tasks.get(
           page > pages_to_exist
         ) {
           return res.status(404).json({
-            sucess: true,
+            sucess: false,
             data: `You do not have any ${status} ${priority} priority tasks with this tag`,
           });
         } else {
-          return res.json({
+          return res.status(200).json({
             success: true,
             data: {
               tasks: filteredTasks,
@@ -93,12 +95,12 @@ tasks.get(
           filteredTasks.length === 0 ||
           page > pages_to_exist
         ) {
-          return res.json({
-            sucess: true,
+          return res.status(404).json({
+            sucess: false,
             data: `You do not have any ${status} tasks with this tag`,
           });
         } else {
-          return res.json({
+          return res.status(200).json({
             success: true,
             data: {
               tasks: filteredTasks,
@@ -130,7 +132,7 @@ tasks.get(
           page > pages_to_exist
         ) {
           return res.status(404).json({
-            sucess: true,
+            sucess: false,
             data: `You do not have any ${priority} priority tasks with this tag`,
           });
         } else {
@@ -164,11 +166,11 @@ tasks.get(
           page > pages_to_exist
         ) {
           return res.status(404).json({
-            sucess: true,
+            sucess: false,
             data: `You do not have any ${status} ${priority} priority tasks`,
           });
         } else {
-          return res.json({
+          return res.status(200).json({
             success: true,
             data: {
               tasks: filteredTasks,
@@ -194,11 +196,11 @@ tasks.get(
         if (page > pages_to_exist) {
           return res
             .status(404)
-            .json({ success: true, data: "Uh oh, page doesn't exist" });
+            .json({ success: false, data: "Uh oh, page doesn't exist" });
         }
         if (!filteredTasks || filteredTasks.length === 0) {
-          return res.json({
-            sucess: true,
+          return res.status(400).json({
+            sucess: false,
             data: `You do not have any ${status} tasks`,
           });
         } else {
@@ -265,14 +267,14 @@ tasks.get(
         const pages_to_exist = Math.ceil(count / 5);
         if (!filteredStoredTags || filteredStoredTags.length === 0) {
           return res.status(404).json({
-            sucess: true,
+            sucess: false,
             data: `You do not have any tasks with this tag`,
           });
         }
         if (page > pages_to_exist) {
           return res
             .status(404)
-            .json({ success: true, data: "Uh oh, page doesn't exist" });
+            .json({ success: false, data: "Uh oh, page doesn't exist" });
         }
         return res.status(200).json({
           success: true,
@@ -304,7 +306,7 @@ tasks.get(
 
       if (!userTasks || userTasks.length === 0 || page > pages_to_exist) {
         return res.status(404).json({
-          sucess: true,
+          sucess: false,
           data: "You haven't created tasks yet",
         });
       } else {
@@ -372,7 +374,7 @@ tasks.post(
         newTags
       );
       // console.log("error from line 34:", err);
-      return res.json({ success: true, data: "Task created!" });
+      return res.status(200).json({ success: true, data: "Task created!" });
     } catch (err) {
       return res.status(500).json({ success: false, data: err.message });
     }
@@ -426,7 +428,7 @@ tasks.put(
       }
       // console.log(task);
       if (!task || task.length === 0) {
-        res.json({ success: true, data: "Task not found" });
+        res.status(400).json({ success: false, data: "Task not found" });
       } else {
         // console.log("else statement block");
         await updateTaskById(
@@ -438,7 +440,7 @@ tasks.put(
           updated_at,
           id
         );
-        return res.json({ success: true, data: "Task updated!" });
+        return res.status(200).json({ success: true, data: "Task updated!" });
       }
       // console.log(task);
     } catch (err) {
@@ -462,12 +464,72 @@ tasks.delete(
         });
       }
       if (task.length === 0) {
-        return res.json({ success: true, data: "User not found" });
+        return res.status(400).json({ success: false, data: "User not found" });
       }
       await deleteTaskById(id);
-      return res.json({ success: true, data: "Task deleted!" });
+      return res.status(200).json({ success: true, data: "Task deleted!" });
     } catch (err) {
       return res.status(500).json({ success: false, data: err.message });
+    }
+  }
+);
+
+tasks.post(
+  "/tasks/share",
+  passport.authenticate("jwt", { session: false }),
+  async (req, res) => {
+    try {
+      // const { username, sub } = returnPayload(req, res);
+      const { email, id } = req.body;
+      // const offset = (page - 1) * 5;
+      const userTask = await getTaskById(id);
+      if (userTask.length === 0) {
+        return res
+          .status(400)
+          .json({ success: false, data: "Task doesn't exist" });
+      }
+      console.log("userTask", userTask);
+      const rows = await findUserByEmail(email);
+      console.log("recieving users", rows);
+      if (rows.length === 0) {
+        return res
+          .status(400)
+          .json({ success: false, data: "User doesn't exist" });
+      }
+      const newTags = JSON.stringify(userTask[0].tags);
+      const receivingUser = rows[0].username;
+      const receivingUserId = rows[0].id;
+      const newId = await shareTask(
+        userTask[0].title,
+        userTask[0].description,
+        userTask[0].due_date,
+        userTask[0].status,
+        userTask[0].priority,
+        userTask[0].created_at,
+        userTask[0].created_by,
+        receivingUserId,
+        newTags,
+        receivingUser
+      );
+      console.log("newId", newId);
+      const updated_at = new Date();
+
+      await updateTaskById(
+        userTask[0].title,
+        userTask[0].description,
+        userTask[0].due_date,
+        userTask[0].status,
+        userTask[0].priority,
+        updated_at,
+        newTags,
+        receivingUser,
+        newId[0].id
+      );
+      return res
+        .status(200)
+        .json({ success: true, data: "Task shared successfully" });
+    } catch (err) {
+      return res.status(500).json({ successs: false, err: err.message });
     }
   }
 );

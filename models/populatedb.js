@@ -17,7 +17,7 @@ class Populate {
       `CREATE TABLE users(id uuid DEFAULT uuid_generate_v4() PRIMARY KEY, username VARCHAR(255), password VARCHAR(255), email VARCHAR(255), salt BYTEA);`
     );
     await pool.query(
-      `CREATE TABLE tasks( id SERIAL PRIMARY KEY, title VARCHAR(255), description VARCHAR(255), due_date DATE, status VARCHAR(255), priority VARCHAR(255), created_at VARCHAR, updated_at VARCHAR, created_by VARCHAR(255), user_id UUID, tags JSON);`
+      `CREATE TABLE tasks( id SERIAL PRIMARY KEY, title VARCHAR(255), description VARCHAR(255), due_date DATE, status VARCHAR(255), priority VARCHAR(255), created_at VARCHAR, updated_at VARCHAR, created_by VARCHAR(255), user_id UUID, tags JSON, delegated_to VARCHAR(255));`
     );
     await pool.query(
       `CREATE TABLE users_tasks( id SERIAL PRIMARY KEY, user_id UUID);`
@@ -69,14 +69,14 @@ class Populate {
     );
     await redis.del("tasks");
   }
-  async getTasks(username, offset) {
+  async getTasks(id, offset) {
     const { rows } = await pool.query(
-      `SELECT * FROM tasks WHERE created_by LIKE $1 ORDER BY id LIMIT 5 OFFSET $2;`,
-      [username, offset]
+      `SELECT * FROM tasks WHERE user_id = $1 ORDER BY id LIMIT 5 OFFSET $2;`,
+      [id, offset]
     );
     const count = await pool.query(
-      `SELECT COUNT(*) FROM tasks where created_by LIKE $1`,
-      [username]
+      `SELECT COUNT(*) FROM tasks where user_id = $1`,
+      [id]
     );
     const rowsCount = { rows, count };
     // console.log(rows);
@@ -104,6 +104,8 @@ class Populate {
     status,
     priority,
     updated_at,
+    tags,
+    delegated_to,
     id
   ) {
     await pool.query(
@@ -114,9 +116,20 @@ class Populate {
     status = COALESCE($4, status),
     priority = COALESCE($5, priority),
     updated_at = $6,
-    tags = COALESCE($7, tags)
-  WHERE id = $8;`,
-      [title, description, due_date, status, priority, updated_at, tags, id]
+    tags = COALESCE($7, tags),
+    delegated_to = COALESCE($8, delegated_to)
+  WHERE id = $9;`,
+      [
+        title,
+        description,
+        due_date,
+        status,
+        priority,
+        updated_at,
+        tags,
+        delegated_to,
+        id,
+      ]
     );
     await redis.del("tasks");
   }
@@ -142,6 +155,7 @@ class Populate {
       `SELECT * FROM users WHERE email LIKE $1`,
       [email]
     );
+    console.log("rows email", rows);
     await redis.set("usersEmail", JSON.stringify(rows));
     return rows;
   }
@@ -158,6 +172,36 @@ class Populate {
       [username]
     );
     await redis.set("userUsername", JSON.stringify(rows));
+    return rows;
+  }
+  async shareTask(
+    title,
+    description,
+    due_date,
+    status,
+    priority,
+    created_at,
+    created_by,
+    user_id,
+    tags,
+    delegated_to
+  ) {
+    const { rows } = await pool.query(
+      `INSERT INTO tasks(title, description, due_date, status, priority, created_at, created_by, user_id, tags, delegated_to) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id;`,
+      [
+        title,
+        description,
+        due_date,
+        status,
+        priority,
+        created_at,
+        created_by,
+        user_id,
+        tags,
+        delegated_to,
+      ]
+    );
+    await redis.del("tasks");
     return rows;
   }
 }
