@@ -5,8 +5,10 @@ The first step is to build a basic server using Node.js and set up a database to
 
 Setting Up
 
-1. Prerequisites: Have node.js installed on your device/machine.
+1. Prerequisites: Have node.js installed on your device/machine, PostgreSQL database and Git
 2. Dependencies: You need to install some of the libraries used in the project.
-   a. Step 1: Open your terminal
-   b. Step 2: Locate the directory where your clone exists
-   c. Step 2: Execute npm i express pg dotenv passport passport-jwt jsonwebtoken ioredis bcryptjs validator
+   a. git clone <the-repository-url> cd task_management_hng
+   b. Step 2: Execute npm i in your terminal
+3. Create a .env file in the root directory
+   a. Fill in values for the DB_URL and SECRET_KEY
+4. Run node app.js
