@@ -1,9 +1,32 @@
 const { Router } = require("express");
-const router = Router();
-const taskController = require("../controllers/taskController");
-const userController = require("../controllers/userController");
+const tasks = Router();
+const { passport } = require("../middlewares/auth");
+const {
+  taskDelete,
+  taskGet,
+  taskIdGet,
+  taskPost,
+  taskPut,
+  taskSharePost,
+} = require("../controllers/taskController");
+tasks.get("/", passport.authenticate("jwt", { session: false }), taskGet);
 
-router.use("/", taskController);
-router.use("/", userController);
+tasks.post("/", passport.authenticate("jwt", { session: false }), taskPost);
 
-module.exports = router;
+tasks.get("/:id", passport.authenticate("jwt", { session: false }), taskIdGet);
+
+tasks.put("/:id", passport.authenticate("jwt", { session: false }), taskPut);
+
+tasks.delete(
+  "/:id",
+  passport.authenticate("jwt", { session: false }),
+  taskDelete
+);
+
+tasks.post(
+  "/share",
+  passport.authenticate("jwt", { session: false }),
+  taskSharePost
+);
+
+module.exports = tasks;

@@ -2,8 +2,8 @@ const { Router } = require("express");
 const users = Router();
 const { usersRegisterPost, usersLoginPost } = require("../middlewares/users");
 
-users.post("/users/register", usersRegisterPost);
-users.post("/users/login", usersLoginPost);
+users.post("/register", usersRegisterPost);
+users.post("/login", usersLoginPost);
 
 // users.post("/users/register", (req, res) => {
 //   const { username, password, email } = req.body;
