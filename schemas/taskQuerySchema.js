@@ -8,23 +8,44 @@ const taskQuerySchema = z.object({
     .transform((val) => {
       const num = Number(val);
       if (isNaN(num) || num <= 0)
-        throw new Error("Input must be a positive number.");
+        throw new Error("Page must be a positive number.");
       return num;
     }),
   status: z
+    .string()
     .optional()
-    .default("pending")
-    .refine((val) => ["pending", "in-progress", "completed"].includes(val), {
-      message:
-        "Status can only include 'pending', 'in-progress' or 'completed'",
-    }),
+    .nullable()
+    .transform((val) => (val === "" ? null : val))
+    .refine(
+      (val) =>
+        val === undefined ||
+        val === null ||
+        ["pending", "in-progress", "completed"].includes(val),
+      {
+        message:
+          "Status can only include 'pending', 'in-progress' or 'completed'",
+      }
+    ),
   priority: z
+    .string()
     .optional()
-    .default("low")
-    .refine((val) => ["high", "medium", "low"].includes(val), {
-      message: "Priorities can only include 'high', 'medium' or 'low'",
+    .nullable()
+    .transform((val) => (val === "" ? null : val))
+    .refine(
+      (val) =>
+        val === undefined ||
+        val === null ||
+        ["high", "medium", "low"].includes(val),
+      {
+        message: "Priorities can only include 'high', 'medium' or 'low'",
+      }
+    ),
+  tags: z
+    .string()
+    .optional()
+    .transform((val) => {
+      return val ? val.split(",").map((tag) => tag.trim()) : [];
     }),
-  tags: z.string().optional(),
 });
 
 module.exports = taskQuerySchema;

@@ -9,11 +9,15 @@ const returnPayload = (req, res) => {
 
 const filterTasks = (tasks, filters) => {
   const { status, priority, tags } = filters;
+  console.log("helper", filters);
 
   return tasks.filter((task) => {
-    const matchesStatus = !status || task.status === status;
-    const matchesPriority = !priority || task.priority === priority;
-    const matchesTags = !tags || task.tags.some((tag) => tags.includes(tag));
+    const matchesStatus = status ? task.status === status : true;
+    const matchesPriority = priority ? task.priority === priority : true;
+    const matchesTags =
+      tags && tags.length > 0
+        ? task.tags.some((tag) => tags.includes(tag))
+        : true;
 
     return matchesStatus && matchesPriority && matchesTags;
   });

@@ -21,43 +21,38 @@ const taskUpdateSchema = require("../schemas/taskUpdateSchema");
 
 const taskGet = async (req, res) => {
   try {
-    console.log("line 24");
+    const result = taskQuerySchema.safeParse(req.query);
+    console.log(result);
+    if (result.error) {
+      const errorMessages = result.error.errors.map((err) => err.message);
+      return res.status(400).json({ success: false, error: errorMessages });
+    }
+    const { page = 1, status, priority, tags, limit = 10 } = result.data;
+    console.log(result.error);
 
-    const {
-      page = 1,
-      status,
-      priority,
-      tags,
-      limit = 10,
-    } = taskQuerySchema.parse(req.query);
-    console.log("line 33");
-
-    const parsedTags = tags ? tags.split(",") : null;
+    const parsedTags = tags || [];
     const { sub } = returnPayload(req, res);
-    console.log("line 33");
     const maxLimit = 10;
     const validLimit = Math.min(Math.max(Number(limit), 1), maxLimit);
     const offset = (page - 1) * validLimit;
 
     const { rows: tasks } = await getTasks(sub, offset);
-    console.log("line 39");
+    console.log(tasks);
 
     const filteredTasks = filterTasks(tasks, {
       status,
       priority,
       tags: parsedTags,
     });
-    console.log("line 46");
 
     const filteredCount = filteredTasks.length;
     const pagesToExist = Math.ceil(filteredCount / limit);
 
     if (filteredCount === 0 || page > pagesToExist) {
-      throw new CustomError(404, "No tasks found matching your criteria");
+      throw new CustomError(404, "No tasks found");
     }
 
     const paginatedTasks = filteredTasks.slice(offset, offset + limit);
-    console.log("line 56");
 
     return res.status(200).json({
       success: true,
@@ -72,7 +67,7 @@ const taskGet = async (req, res) => {
     });
   } catch (err) {
     return res
-      .status(err.status || 400)
+      .status(err.status || 404)
       .json({ success: false, error: err.message });
   }
 };
