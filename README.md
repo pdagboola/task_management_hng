@@ -1,7 +1,3 @@
-Here’s a suggested README structure for the Task Management API project based on the provided information:
-
----
-
 # Task Management API
 
 This API manages tasks with functionalities like creating, delegating, deleting, updating tasks, and filtering tasks by priority, status, and tags.
