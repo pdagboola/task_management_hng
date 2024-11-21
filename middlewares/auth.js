@@ -1,11 +1,9 @@
 require("dotenv").config();
-const { findUserById } = require("../models/populatedb");
+const { findUserById } = require("../models/userModel");
 const passport = require("passport");
 const JwtStrategy = require("passport-jwt").Strategy,
   ExtractJwt = require("passport-jwt").ExtractJwt;
 const opts = {};
-// const { createUser } = require("../models/populatedb");
-// console.log("line 10 auth.js", crypto);
 
 opts.secretOrKey = process.env.SECRET_KEY; //seret
 opts.jwtFromRequest = ExtractJwt.fromAuthHeaderAsBearerToken(); //extractor
@@ -15,7 +13,6 @@ passport.use(
   new JwtStrategy(
     opts,
     (verify = async (jwt_payload, done) => {
-      console.log("jwt_payload:", jwt_payload);
       try {
         const user = await findUserById(jwt_payload.sub);
         if (user) {

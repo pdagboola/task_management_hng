@@ -1,61 +1,74 @@
-const { Router } = require("express");
-const users = Router();
-const { usersRegisterPost, usersLoginPost } = require("../middlewares/users");
+const jwt = require("jsonwebtoken");
+const {
+  checkIfUserExists,
+  checkUsernamePassword,
+} = require("../services/userService");
+const userSchema = require("../schemas/userSchema");
+const userLoginSchema = require("../schemas/userLoginSchema");
 
-users.post("/register", usersRegisterPost);
-users.post("/login", usersLoginPost);
+const usersRegisterPost = async (req, res) => {
+  try {
+    const result = userSchema.safeParse(req.body);
+    if (result.error) {
+      return res.status(400).json({
+        success: false,
+        err: result.error.errors.map((error) => error.message),
+      });
+    }
+    const { username, password, email } = result.data;
+    const doesUserExist = await checkIfUserExists(username, password, email);
+    if (doesUserExist) {
+      return res.status(200).json({
+        success: true,
+        data: "User created",
+      });
+    } else {
+      return res
+        .status(400)
+        .json({ success: false, err: "User already exists" });
+    }
+  } catch (err) {
+    return res
+      .status(500)
+      .json({ success: false, data: "Couldn't create user", err: err.message });
+  }
+};
 
-// users.post("/users/register", (req, res) => {
-//   const { username, password, email } = req.body;
-//   console.log({ username, password, email });
+const usersLoginPost = async (req, res) => {
+  try {
+    const result = userLoginSchema.safeParse(req.body);
+    if (result.error) {
+      return res.status(400).json({
+        success: false,
+        err: result.error.errors.map((error) => error.message),
+      });
+    }
+    const { username, password } = result.data;
+    const user = await checkUsernamePassword(username, password);
+    if (!user) {
+      return res
+        .status(401)
+        .json({ success: false, error: "Invalid username or password" });
+    } else {
+      const token = jwt.sign(
+        { sub: user.id, username: user.username },
+        process.env.SECRET_KEY,
+        { expiresIn: "1h" }
+      );
+      res.status(200).json({
+        success: true,
+        data: "Login successful",
+        user: req.username,
+        token: "Bearer " + token,
+      });
+    }
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      data: "Couldn't login user",
+      err: err.message,
+    });
+  }
+};
 
-//   const salt = crypto.randomBytes(16);
-//   crypto.pbkdf2(
-//     password,
-//     salt,
-//     310000,
-//     32,
-//     "sha256",
-//     async (err, hashedPassword) => {
-//       if (err) {
-//         return res
-//           .status(500)
-//           .json({ success: false, data: "Error hashing password" });
-//       }
-//       await console.log(hashedPassword),
-//         await createUser(username, hashedPassword, email, salt),
-//         async (username, err) => {
-//           if (err) {
-//             res.json(500, { succes: false, data: "Couldn't create user" });
-//           }
-//           const { id } = await findUserByUsername(username);
-//           const user = { id, username };
-//           const token = jwt.sign(
-//             { sub: user.id, username: user.username },
-//             "secret",
-//             { expiresIn: "1h" }
-//           );
-//           res.json({ success: true, data: "User created", token });
-//         };
-
-//       // console.log(first);
-//     }
-//   );
-//   const { username, password, email } = req.body;
-//    const salt = crypto.randomBytes(16);
-//    crypto.pbkdf2(
-//      password,
-//      salt,
-//      310000,
-//      32,
-//      "sha256",
-//      async (err, hashedPassword) => {
-//        try {
-//          await createUser(username, hashedPassword, email, salt);
-//        } catch (err) {}
-//        console.log(first);
-//      }
-//    );
-// });
-
-module.exports = users;
+module.exports = { usersRegisterPost, usersLoginPost };

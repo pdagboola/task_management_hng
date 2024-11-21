@@ -1,14 +1,14 @@
-const CustomError = require("./customError");
+const CustomError = require("../utils/customError");
 
 const errorHandlingMiddleware = (err, req, res, next) => {
   if (err instanceof CustomError) {
-    return res.status(err.status).json({
+    return res.status(err.statusCode).json({
       success: false,
       error: err.message,
     });
   }
 
-  res.status(err.status || 500).json({
+  res.status(err.statusCode || 500).json({
     success: false,
     error: err.message || "Internal Server Error",
   });

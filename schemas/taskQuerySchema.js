@@ -1,4 +1,5 @@
 const { z } = require("zod");
+const { CustomError } = require("../utils/helpers");
 
 const taskQuerySchema = z.object({
   page: z
@@ -8,7 +9,7 @@ const taskQuerySchema = z.object({
     .transform((val) => {
       const num = Number(val);
       if (isNaN(num) || num <= 0)
-        throw new Error("Page must be a positive number.");
+        throw new CustomError(400, "Page must be a positive number.");
       return num;
     }),
   status: z
@@ -45,6 +46,22 @@ const taskQuerySchema = z.object({
     .optional()
     .transform((val) => {
       return val ? val.split(",").map((tag) => tag.trim()) : [];
+    }),
+  limit: z
+    .string()
+    .optional()
+    .transform((val) => {
+      if (val === undefined || val === null || val === "") {
+        return 10;
+      }
+      const num = Number(val);
+      if (isNaN(num) || num <= 0) {
+        throw new CustomError(400, "The limit must be a positive number");
+      }
+      return num < 10 ? num : 10;
+    })
+    .refine((val) => typeof val === "number" && val > 0, {
+      message: "The input is not a positive number",
     }),
 });
 

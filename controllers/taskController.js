@@ -4,54 +4,40 @@ const {
   getTaskById,
   updateTaskById,
   deleteTaskById,
-  findUserByEmail,
   shareTask,
-} = require("../models/populatedb");
+} = require("../models/taskModel");
+const { findUserByEmail } = require("../models/userModel");
 
-const {
-  returnPayload,
-  filterTasks,
-  checkTaskOwnership,
-  CustomError,
-} = require("../utils/helpers");
+const { returnPayload, filterTasks } = require("../utils/helpers");
+const { checkTaskOwnership } = require("../services/taskService");
+const CustomError = require("../utils/customError");
 
 const taskCreateSchema = require("../schemas/taskCreateSchema");
 const taskQuerySchema = require("../schemas/taskQuerySchema");
 const taskUpdateSchema = require("../schemas/taskUpdateSchema");
 
-const taskGet = async (req, res) => {
+const taskGet = async (req, res, next) => {
   try {
     const result = taskQuerySchema.safeParse(req.query);
-    console.log(result);
     if (result.error) {
       const errorMessages = result.error.errors.map((err) => err.message);
-      return res.status(400).json({ success: false, error: errorMessages });
+      return next(new CustomError(400, errorMessages.join(", ")));
     }
-    const { page = 1, status, priority, tags, limit = 10 } = result.data;
-    console.log(result.error);
-
+    const { page = 1, status, priority, tags, limit } = result.data;
     const parsedTags = tags || [];
     const { sub } = returnPayload(req, res);
-    const maxLimit = 10;
-    const validLimit = Math.min(Math.max(Number(limit), 1), maxLimit);
-    const offset = (page - 1) * validLimit;
-
-    const { rows: tasks } = await getTasks(sub, offset);
-    console.log(tasks);
-
+    const offset = (page - 1) * limit;
+    const { rows: tasks } = await getTasks(sub, limit, offset);
     const filteredTasks = filterTasks(tasks, {
       status,
       priority,
       tags: parsedTags,
     });
-
     const filteredCount = filteredTasks.length;
     const pagesToExist = Math.ceil(filteredCount / limit);
-
     if (filteredCount === 0 || page > pagesToExist) {
-      throw new CustomError(404, "No tasks found");
+      return next(new CustomError(404, "No tasks found"));
     }
-
     const paginatedTasks = filteredTasks.slice(offset, offset + limit);
 
     return res.status(200).json({
@@ -66,27 +52,22 @@ const taskGet = async (req, res) => {
       },
     });
   } catch (err) {
-    return res
-      .status(err.status || 404)
-      .json({ success: false, error: err.message });
+    return next(err);
   }
 };
 
-const taskPost = async (req, res) => {
+const taskPost = async (req, res, next) => {
   try {
     const { username, sub } = returnPayload(req, res);
     const parsedData = taskCreateSchema.parse(req.body);
     const { title, description, due_date, status, priority, tags } = parsedData;
-
     const current_date = new Date();
     const dueDate = new Date(due_date);
     if (dueDate < current_date) {
-      throw new CustomError(400, "Due date must be in the future");
+      return next(new CustomError(400, "Due date must be in the future"));
     }
-
     const created_at = Date();
     const newTags = JSON.stringify(tags);
-
     await createTask(
       title,
       description,
@@ -101,38 +82,33 @@ const taskPost = async (req, res) => {
 
     return res.status(200).json({ success: true, data: "Task created!" });
   } catch (err) {
-    return res.status(err.status || 400).json({
-      success: false,
-      error: err.errors
-        ? err.errors.map((e) => e.message).join(", ")
-        : err.message,
-    });
+    return next(err);
   }
 };
 
-const taskIdGet = async (req, res) => {
+const taskIdGet = async (req, res, next) => {
   try {
     const { username } = returnPayload(req, res);
     const { id } = req.params;
 
     const task = await getTaskById(id);
     if (!task || task.length === 0) {
-      throw new CustomError(404, "Task not found");
+      return next(new CustomError(404, "Task not found"));
     }
 
     if (!checkTaskOwnership(task, username)) {
-      throw new CustomError(401, "You are unauthorized to view this task");
+      return next(
+        new CustomError(401, "You are unauthorized to view this task")
+      );
     }
 
     return res.status(200).json({ success: true, data: task });
   } catch (err) {
-    return res
-      .status(err.status || 500)
-      .json({ success: false, error: err.message });
+    return next(err);
   }
 };
 
-const taskPut = async (req, res) => {
+const taskPut = async (req, res, next) => {
   try {
     const { id } = req.params;
     const { title, description, due_date, status, priority } = req.body;
@@ -141,16 +117,18 @@ const taskPut = async (req, res) => {
 
     const validationResult = taskUpdateSchema.safeParse(req.body);
     if (!validationResult.success) {
-      throw new CustomError(400, "Invalid input data");
+      return next(new CustomError(400, "Invalid input data"));
     }
 
     const task = await getTaskById(id);
     if (!task || task.length === 0) {
-      throw new CustomError(400, "Task not found");
+      return next(new CustomError(400, "Task not found"));
     }
 
     if (!checkTaskOwnership(task, username)) {
-      throw new CustomError(401, "You are unauthorized to update this task");
+      return next(
+        new CustomError(401, "You are unauthorized to update this task")
+      );
     }
 
     await updateTaskById(
@@ -165,48 +143,43 @@ const taskPut = async (req, res) => {
 
     return res.status(200).json({ success: true, data: "Task updated!" });
   } catch (err) {
-    return res
-      .status(err.status || 500)
-      .json({ success: false, error: err.message });
+    return next(err);
   }
 };
 
-const taskDelete = async (req, res) => {
+const taskDelete = async (req, res, next) => {
   try {
     const { id } = req.params;
     const { username } = returnPayload(req, res);
-
     const task = await getTaskById(id);
     if (!task || task.length === 0) {
-      throw new CustomError(400, "Task not found");
+      return next(new CustomError(400, "Task not found"));
     }
-
     if (!checkTaskOwnership(task, username)) {
-      throw new CustomError(401, "You are unauthorized to delete this task");
+      return next(
+        new CustomError(401, "You are unauthorized to delete this task")
+      );
     }
-
     await deleteTaskById(id);
 
     return res.status(200).json({ success: true, data: "Task deleted!" });
   } catch (err) {
-    return res
-      .status(err.status || 500)
-      .json({ success: false, error: err.message });
+    return next(err);
   }
 };
 
-const taskSharePost = async (req, res) => {
+const taskSharePost = async (req, res, next) => {
   try {
     const { email, id } = req.body;
 
     const userTask = await getTaskById(id);
     if (!userTask || userTask.length === 0) {
-      throw new CustomError(404, "Task doesn't exist");
+      return next(new CustomError(404, "Task doesn't exist"));
     }
 
     const rows = await findUserByEmail(email);
     if (rows.length === 0) {
-      throw new CustomError(404, "User doesn't exist");
+      return next(new CustomError(404, "User doesn't exist"));
     }
 
     const newTags = JSON.stringify(userTask[0].tags);
@@ -244,9 +217,7 @@ const taskSharePost = async (req, res) => {
       .status(200)
       .json({ success: true, data: "Task shared successfully" });
   } catch (err) {
-    return res
-      .status(err.status || 500)
-      .json({ success: false, error: err.message });
+    return next(err);
   }
 };
 
