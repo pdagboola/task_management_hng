@@ -1,6 +1,5 @@
 const request = require("supertest");
-const app = require("../../app"); // Your Express app
-
+const app = require("../../app");
 const {
   checkIfUserExists,
   checkUsernamePassword,
@@ -70,7 +69,6 @@ describe("User Controller Tests", () => {
         password: "password123",
       };
 
-      // Mock the checkUsernamePassword to return a user object
       checkUsernamePassword.mockResolvedValue({
         id: 1,
         username: "testuser",
@@ -93,7 +91,6 @@ describe("User Controller Tests", () => {
         password: "wrongpassword",
       };
 
-      // Mock the checkUsernamePassword to return null (invalid user)
       checkUsernamePassword.mockResolvedValue(null);
 
       const response = await request(app)
@@ -107,7 +104,7 @@ describe("User Controller Tests", () => {
 
     it("should return validation error for invalid input", async () => {
       const invalidLoginData = {
-        username: "", // Invalid username
+        username: "",
         password: "password123",
       };
 
