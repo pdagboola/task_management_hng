@@ -73,11 +73,3 @@ Ensure you have the following installed:
 
 - **Description**: Delete a task by ID.
 - **Response**: Confirmation message.
-
-## License
-
-This project is licensed under the MIT License.
-
----
-
-Feel free to tweak the details based on further requirements or the full code structure.
