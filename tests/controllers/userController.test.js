@@ -5,7 +5,7 @@ const {
   checkUsernamePassword,
 } = require("../../services/userService");
 
-jest.mock("../services/userService");
+jest.mock("../../services/userService");
 
 describe("User Controller Tests", () => {
   describe("POST /users/register", () => {
