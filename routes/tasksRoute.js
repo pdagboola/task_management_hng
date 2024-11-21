@@ -9,24 +9,17 @@ const {
   taskPut,
   taskSharePost,
 } = require("../controllers/taskController");
-tasks.get("/", passport.authenticate("jwt", { session: false }), taskGet);
+tasks.use(passport.authenticate("jwt", { session: false }));
+tasks.get("/", taskGet);
 
-tasks.post("/", passport.authenticate("jwt", { session: false }), taskPost);
+tasks.post("/", taskPost);
 
-tasks.get("/:id", passport.authenticate("jwt", { session: false }), taskIdGet);
+tasks.get("/:id", taskIdGet);
 
-tasks.put("/:id", passport.authenticate("jwt", { session: false }), taskPut);
+tasks.put("/:id", taskPut);
 
-tasks.delete(
-  "/:id",
-  passport.authenticate("jwt", { session: false }),
-  taskDelete
-);
+tasks.delete("/:id", taskDelete);
 
-tasks.post(
-  "/share",
-  passport.authenticate("jwt", { session: false }),
-  taskSharePost
-);
+tasks.post("/share", taskSharePost);
 
 module.exports = tasks;

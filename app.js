@@ -17,3 +17,5 @@ app.use(errorHandlingMiddleware);
 app.listen(PORT, () =>
   console.log(`Your task management App is currently running on port ${PORT}!`)
 );
+
+module.exports = app;

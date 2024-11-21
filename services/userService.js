@@ -13,13 +13,13 @@ const checkIfUserExists = async (username, password, email) => {
     const saltRounds = 10;
     const hashedPassword = await bcrypt.hash(password, saltRounds);
     await createUser(username, hashedPassword, email, saltRounds);
-    return true;
+    return false;
   }
   if (
     (userExists.length > 0 && userExists[0].username === username) ||
     (userEmailExists.length > 0 && userEmailExists[0].email === email)
   ) {
-    return false;
+    return true;
   }
 };
 

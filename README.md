@@ -1,13 +1,83 @@
-HNG Task Management App
-At the end of this coding challenge, this API will manage tasks which can include creating, delegating, deleting and updating tasks.
-This API will also be able to give filtered task responses based on priority, status and included tags.
+Here’s a suggested README structure for the Task Management API project based on the provided information:
 
-Setting Up
+---
 
-1. Prerequisites: Have node.js installed on your device/machine, PostgreSQL database and Git
-2. Dependencies: You need to install some of the libraries used in the project.
-   a. git clone <the-repository-url> cd task_management_hng
-   b. Step 2: Execute npm i in your terminal
-3. Create a .env file in the root directory
-   a. Fill in values for the DB_URL and SECRET_KEY
-4. Run node app.js
+# Task Management API
+
+This API manages tasks with functionalities like creating, delegating, deleting, updating tasks, and filtering tasks by priority, status, and tags.
+
+## Features
+
+- **Task Creation**: Create new tasks with details like priority, status, and tags.
+- **Task Delegation**: Assign tasks to users.
+- **Task Update**: Modify task details.
+- **Task Deletion**: Remove tasks.
+- **Filtering**: Filter tasks based on priority, status, and tags.
+
+## Installation
+
+### Prerequisites
+
+Ensure you have the following installed:
+
+- [Node.js](https://nodejs.org/)
+- [PostgreSQL](https://www.postgresql.org/)
+- [Git](https://git-scm.com/)
+
+### Steps to Set Up
+
+1. Clone the repository:
+
+   ```bash
+   git clone https://github.com/pdagboola/task_management_hng.git
+   cd task_management_hng
+   ```
+
+2. Install dependencies:
+
+   ```bash
+   npm install
+   ```
+
+3. Create a `.env` file in the root directory and configure the following variables:
+
+   - `DB_URL`: Your PostgreSQL database connection string.
+   - `SECRET_KEY`: A secret key used for JWT authentication.
+
+4. Run the application:
+   ```bash
+   node app.js
+   ```
+
+## API Endpoints
+
+### POST `/tasks`
+
+- **Description**: Create a new task.
+- **Request Body**: `{ "title": "Task Title", "priority": "High", "status": "Pending", "tags": ["Tag1"] }`
+- **Response**: Task details with a success message.
+
+### GET `/tasks`
+
+- **Description**: Get all tasks.
+- **Query Parameters**: `priority`, `status`, `tags` for filtering.
+- **Response**: List of tasks based on the filters.
+
+### PUT `/tasks/:id`
+
+- **Description**: Update an existing task.
+- **Request Body**: `{ "title": "Updated Task", "status": "Completed" }`
+- **Response**: Updated task details.
+
+### DELETE `/tasks/:id`
+
+- **Description**: Delete a task by ID.
+- **Response**: Confirmation message.
+
+## License
+
+This project is licensed under the MIT License.
+
+---
+
+Feel free to tweak the details based on further requirements or the full code structure.
