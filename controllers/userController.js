@@ -3,10 +3,13 @@ const {
   checkIfUserExists,
   checkUsernamePassword,
 } = require("../services/userService");
+const { createUser } = require("../models/userModel");
 const userSchema = require("../schemas/userSchema");
 const userLoginSchema = require("../schemas/userLoginSchema");
+const bcrypt = require("bcryptjs");
 
 const usersRegisterPost = async (req, res) => {
+  console.log("entered");
   try {
     const result = userSchema.safeParse(req.body);
     if (result.error) {
@@ -17,7 +20,11 @@ const usersRegisterPost = async (req, res) => {
     }
     const { username, password, email } = result.data;
     const doesUserExist = await checkIfUserExists(username, password, email);
-    if (doesUserExist) {
+    console.log("exit");
+    if (!doesUserExist) {
+      const saltRounds = 10;
+      const hashedPassword = await bcrypt.hash(password, saltRounds);
+      await createUser(username, hashedPassword, email, saltRounds);
       return res.status(200).json({
         success: true,
         data: "User created",

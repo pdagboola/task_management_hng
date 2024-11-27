@@ -1,11 +1,11 @@
 const express = require("express");
-const app = express();
-const PORT = 3030;
 const taskRoutes = require("./routes/tasksRoute");
 const userRoutes = require("./routes/userRoute");
 const passport = require("passport");
 const errorHandlingMiddleware = require("./middlewares/errorHandler");
 
+const app = express();
+const PORT = 3030;
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 

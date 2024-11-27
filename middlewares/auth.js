@@ -27,20 +27,4 @@ passport.use(
   )
 );
 
-// users.get(
-//   "/protected",
-//   passport.authenticate("jwt", { session: false }),
-//   (req, res) => {
-//     try {
-//       res.status(200).json({
-//         data: "You have accessed a protected route!",
-//         user: { username: req.user[0].username, id: req.user[0].id },
-//         // user: { username: req.user.username, id: req.user.id },
-//       });
-//     } catch (err) {
-//       res.status(500).json({ success: false, err: err.message });
-//     }
-//   }
-// );
-
 module.exports = { passport };

@@ -4,19 +4,19 @@ const { passport } = require("../middlewares/auth");
 const {
   taskDelete,
   taskGet,
-  taskIdGet,
-  taskPost,
-  taskPut,
+  createTaskPost,
+  getTaskWithId,
+  updateTaskPut,
   taskSharePost,
 } = require("../controllers/taskController");
 tasks.use(passport.authenticate("jwt", { session: false }));
 tasks.get("/", taskGet);
 
-tasks.post("/", taskPost);
+tasks.post("/", createTaskPost);
 
-tasks.get("/:id", taskIdGet);
+tasks.get("/:id", getTaskWithId);
 
-tasks.put("/:id", taskPut);
+tasks.put("/:id", updateTaskPut);
 
 tasks.delete("/:id", taskDelete);
 

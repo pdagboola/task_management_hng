@@ -56,7 +56,7 @@ const taskGet = async (req, res, next) => {
   }
 };
 
-const taskPost = async (req, res, next) => {
+const createTaskPost = async (req, res, next) => {
   try {
     const { username, sub } = returnPayload(req, res);
     const parsedData = taskCreateSchema.parse(req.body);
@@ -86,7 +86,7 @@ const taskPost = async (req, res, next) => {
   }
 };
 
-const taskIdGet = async (req, res, next) => {
+const getTaskWithId = async (req, res, next) => {
   try {
     const { username } = returnPayload(req, res);
     const { id } = req.params;
@@ -108,7 +108,7 @@ const taskIdGet = async (req, res, next) => {
   }
 };
 
-const taskPut = async (req, res, next) => {
+const updateTaskPut = async (req, res, next) => {
   try {
     const { id } = req.params;
     const { title, description, due_date, status, priority } = req.body;
@@ -224,8 +224,8 @@ const taskSharePost = async (req, res, next) => {
 module.exports = {
   taskDelete,
   taskGet,
-  taskIdGet,
-  taskPost,
-  taskPut,
+  createTaskPost,
+  getTaskWithId,
+  updateTaskPut,
   taskSharePost,
 };

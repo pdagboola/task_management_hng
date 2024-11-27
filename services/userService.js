@@ -1,18 +1,11 @@
 const bcrypt = require("bcryptjs");
 
-const {
-  findUserByUsername,
-  findUserByEmail,
-  createUser,
-} = require("../models/userModel");
+const { findUserByUsername, findUserByEmail } = require("../models/userModel");
 
 const checkIfUserExists = async (username, password, email) => {
   const userExists = await findUserByUsername(username);
   const userEmailExists = await findUserByEmail(email);
   if (userExists.length === 0 && userEmailExists.length === 0) {
-    const saltRounds = 10;
-    const hashedPassword = await bcrypt.hash(password, saltRounds);
-    await createUser(username, hashedPassword, email, saltRounds);
     return false;
   }
   if (
