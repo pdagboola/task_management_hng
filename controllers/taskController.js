@@ -36,7 +36,7 @@ const taskGet = async (req, res, next) => {
     const filteredCount = filteredTasks.length;
     const pagesToExist = Math.ceil(filteredCount / limit);
     if (filteredCount === 0 || page > pagesToExist) {
-      return next(new CustomError(404, "No tasks found"));
+      return res.status(404).json({ message: "No tasks found" });
     }
     const paginatedTasks = filteredTasks.slice(offset, offset + limit);
 
@@ -64,7 +64,9 @@ const createTaskPost = async (req, res, next) => {
     const current_date = new Date();
     const dueDate = new Date(due_date);
     if (dueDate < current_date) {
-      return next(new CustomError(400, "Due date must be in the future"));
+      return res
+        .status(400)
+        .json({ message: "Due date must be in the future" });
     }
     const created_at = Date();
     const newTags = JSON.stringify(tags);
@@ -93,13 +95,13 @@ const getTaskWithId = async (req, res, next) => {
 
     const task = await getTaskById(id);
     if (!task || task.length === 0) {
-      return next(new CustomError(404, "Task not found"));
+      return res.status(404).json({ message: "Task not found" });
     }
 
     if (!checkTaskOwnership(task, username)) {
-      return next(
-        new CustomError(401, "You are unauthorized to view this task")
-      );
+      return res
+        .status(401)
+        .json({ message: "You are unauthorized to view this task" });
     }
 
     return res.status(200).json({ success: true, data: task });
@@ -126,9 +128,9 @@ const updateTaskPut = async (req, res, next) => {
     }
 
     if (!checkTaskOwnership(task, username)) {
-      return next(
-        new CustomError(401, "You are unauthorized to update this task")
-      );
+      return res
+        .status(401)
+        .json({ message: "You are unauthorized to update this task" });
     }
 
     await updateTaskById(
@@ -156,9 +158,9 @@ const taskDelete = async (req, res, next) => {
       return next(new CustomError(400, "Task not found"));
     }
     if (!checkTaskOwnership(task, username)) {
-      return next(
-        new CustomError(401, "You are unauthorized to delete this task")
-      );
+      return res
+        .status(401)
+        .json({ message: "You are unauthorized to update this task" });
     }
     await deleteTaskById(id);
 
